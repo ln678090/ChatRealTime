@@ -1,0 +1,49 @@
+server:
+  port: 8808
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/webchatasmjava5 #neu deloy spring boot len docker thi se dung url jdbc:postgresql://postgres:5432/web_ban_hang
+    username: ${DB_USERNAME_POSTGRES}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 100
+      minimum-idle: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+          fetch_size: 100
+        order_inserts: true
+        order_updates: true
+        query:
+          plan_cache_max_size: 2048
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+#rsa:
+#  public-key: ${RSA_PUBLIC_KEY}
+#  private-key: ${RSA_PRIVATE_KEY}
+jwt:
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION}
+rsa:
+  public-key: classpath:keys/public.pem
+  private-key: classpath:keys/private.pem
+
+hash:
+  argon2:
+    memory: 15360
+    iterations: 2
+    length: 32
+    parallelism: 1
+    type: id
+    version: 19
