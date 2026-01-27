@@ -5,8 +5,8 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/webchatasmjava5 #neu deloy spring boot len docker thi se dung url jdbc:postgresql://postgres:5432/web_ban_hang
-    username: ${DB_USERNAME_POSTGRES}
-    password: ${DB_PASSWORD}
+    username: ${DB_USERNAME_POSTGRES:postgres}
+    password: ${DB_PASSWORD:password}
     hikari:
       maximum-pool-size: 100
       minimum-idle: 20
@@ -37,8 +37,8 @@ spring:
 #  public-key: ${RSA_PUBLIC_KEY}
 #  private-key: ${RSA_PRIVATE_KEY}
 jwt:
-  access-token-expiration: ${JWT_ACCESS_EXPIRATION}
-  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1d}
 rsa:
   public-key: classpath:keys/public.pem
   private-key: classpath:keys/private.pem
