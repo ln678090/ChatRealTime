@@ -45,27 +45,27 @@ public class User {
     private String fullName;
 
     @Size(max = 500)
-    @Column(name = "avatar_url", length = 500)
-    private String avatarUrl;
+    @Column(name = "avatar", length = 500)
+    private String avatar;
 
     @ColumnDefault("false")
     @Column(name = "is_online")
-    private Boolean isOnline;
+    private Boolean isOnline = true;
 
     @NotNull
     @ColumnDefault("now()")
     @Column(name = "last_seen", nullable = false)
-    private OffsetDateTime lastSeen;
+    private OffsetDateTime lastSeen = OffsetDateTime.now();
 
     @NotNull
     @ColumnDefault("now()")
     @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     @NotNull
     @ColumnDefault("true")
     @Column(name = "enabled", nullable = false)
-    private Boolean enabled;
+    private Boolean enabled = true;
 
     @PrePersist
     void prePersist() {
@@ -73,20 +73,43 @@ public class User {
             id = UuidCreator.getTimeOrderedEpoch();
         }
     }
+
     @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserRole> userRoles;
+    @Size(max = 500)
+    @Column(name = "address", length = 500)
+    private String address;
 
 
     public boolean isEnabled() {
         return enabled;
 
     }
+
     @Transient
     public Set<String> getRoleNames() {
         if (userRoles == null) return Collections.emptySet();
         return userRoles.stream()
-                .map(ur->ur.getRole().getRoleName())
+                .map(ur -> ur.getRole().getRoleName())
                 .collect(Collectors.toSet());
     }
+
+    @Transient
+    public void setRoles(Set<Role> roles) {
+        if (this.userRoles == null) {
+            this.userRoles = new java.util.HashSet<>();
+        }
+
+        this.userRoles.clear();
+        if (roles == null) return;
+        // Thêm role mới
+        for (Role role : roles) {
+            UserRole ur = new UserRole();
+            ur.setUser(this);
+            ur.setRole(role);
+            this.userRoles.add(ur);
+        }
+    }
+
 }

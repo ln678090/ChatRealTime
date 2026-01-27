@@ -11,19 +11,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
+
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var user = userRepository.findByUsernameWithRoles(username)
-                .orElseThrow(() -> new RuntimeException("Sai tài khoản hoặc mật khẩu"));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        var user = userRepository.findByEmailWithRoles(email)
+                .orElseThrow(() -> new RuntimeException("Wrong account or password"));
 
         // Nếu Role.name của bạn lưu là "ADMIN" / "USER"
         // thì phải convert thành "ROLE_ADMIN" / "ROLE_USER"
         return new CustomUserDetails(
-                user.getId(),
-                user.getUsername(),
-                user.getPassword(),
-                user.isEnabled(),
-                user.getRoleNames()
+                user
         );
     }
 }

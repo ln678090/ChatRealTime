@@ -1,6 +1,7 @@
-package com.java5.asm.controller;
+package com.java5.asm.controller.auth;
 
 import com.java5.asm.dto.req.LoginRequest;
+import com.java5.asm.dto.req.RegisterReq;
 import com.java5.asm.dto.resp.ApiResp;
 import com.java5.asm.service.AuthenticationService;
 import jakarta.validation.Valid;
@@ -29,6 +30,23 @@ class AuthenticationRestController {
     ) {
         log.info("Received refresh token request:");
         return authenticationService.refreshToken(refreshToken);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResp<Object>> logout(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            @RequestHeader(name = "Authorization", required = false) String authHeader
+    ) {
+        log.info("Received logout request:");
+        return authenticationService.logout(refreshToken, authHeader);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResp<Object>> register(
+            @Valid @RequestBody RegisterReq req
+    ) {
+        log.info("Received register request:");
+        return authenticationService.register(req);
     }
 
 }

@@ -42,5 +42,8 @@ public class Participant {
     @Column(name = "role", nullable = false, length = 20)
     private String role;
 
-
+    // Enum: ACCEPTED, PENDING, BLOCKED, LEFT
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ConversationStatus status;
 }

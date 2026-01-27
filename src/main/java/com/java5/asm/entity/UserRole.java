@@ -12,7 +12,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name = "user_roles")
 public class UserRole {
     @EmbeddedId
-    private UserRoleId id;
+    private UserRoleId id= new UserRoleId();
 
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

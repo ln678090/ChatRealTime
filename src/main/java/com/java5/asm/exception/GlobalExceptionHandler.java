@@ -2,16 +2,18 @@ package com.java5.asm.exception;
 
 import com.java5.asm.dto.resp.ApiResp;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.util.stream.Collectors;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @ControllerAdvice
@@ -20,7 +22,7 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiResp<Object>> handleRuntimeException(RuntimeException e) {
         System.out.println("RuntimeException caught: " + e.getMessage());
         ApiResp<Object> apiResp = ApiResp.builder()
-
+                .timestamp(String.valueOf(Instant.now()))
                 .message(e.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -31,19 +33,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResp<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
 
-        String errorMessages = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.joining(", "));
-        log.warn("Validation failed: {}", errorMessages);
-        ApiResp<Object> apiResp = ApiResp.builder()
+        // tên field
+        // message
+        // nếu trùng field thì lấy msg1
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError fieldError : ex.getBindingResult()
+                .getFieldErrors()) {
+            errors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
+        }
 
-                .message(errorMessages)
+        log.warn("Validation failed: {}", errors);
+
+        ApiResp<Object> apiResp = ApiResp.builder()
+                .timestamp(String.valueOf(Instant.now()))
+                .data(errors)   // trả về map thay vì string
+                .message("Validation failed")
                 .build();
 
         return ResponseEntity.badRequest().body(apiResp);
     }
+
 
     // Bắt lỗi MISSING BODY hoặc MALFORMED JSON
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -64,7 +73,7 @@ public class GlobalExceptionHandler {
         log.warn("HttpMessageNotReadableException: {}", ex.getMessage());
 
         ApiResp<Object> apiResp = ApiResp.builder()
-
+                .timestamp(String.valueOf(Instant.now()))
                 .message(message)
                 .build();
 
@@ -75,8 +84,8 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiResp<Object>> usernameNotFoundException(RuntimeException e) {
         System.out.println("usernameNotFoundException caught: " + e.getMessage());
         ApiResp<Object> apiResp = ApiResp.builder()
-
-                .message("Sai tài khoản hoặc mật khẩu")
+                .timestamp(String.valueOf(Instant.now()))
+                .message("Wrong account or password")
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(apiResp);

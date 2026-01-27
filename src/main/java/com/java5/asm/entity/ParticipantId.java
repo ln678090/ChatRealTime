@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ import java.util.UUID;
 @EqualsAndHashCode
 @Embeddable
 public class ParticipantId implements Serializable {
+    @Serial
     private static final long serialVersionUID = -8991549589874035550L;
     @NotNull
     @Column(name = "conversation_id", nullable = false)
@@ -25,4 +27,12 @@ public class ParticipantId implements Serializable {
     private UUID userId;
 
 
+    public ParticipantId(@NotNull(message = "Conversation ID is required") Long conversationId, UUID currentUserId) {
+        this.conversationId = conversationId;
+        this.userId = currentUserId;
+    }
+
+    public ParticipantId() {
+
+    }
 }

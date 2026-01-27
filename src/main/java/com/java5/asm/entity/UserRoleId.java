@@ -26,5 +26,15 @@ public class UserRoleId implements Serializable {
     @Column(name = "role_id", nullable = false)
     private Integer roleId;
 
+    public UserRoleId(UUID userId, Integer roleId) {
+        this.userId = userId;
+        this.roleId = roleId;
+    }
+
+
+    public UserRoleId() {
+
+    }
+
 
 }

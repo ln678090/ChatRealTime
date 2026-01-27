@@ -21,15 +21,9 @@ public class CustomUserDetails implements UserDetails {
     private final String username;
     private final String password;
     private final boolean enabled;
+    private final String email;
     private final Set<String> roles;
 
-    public CustomUserDetails(UUID userId, String username, String password, boolean enabled, Set<String> roles) {
-        this.userId = userId;
-        this.username = username;
-        this.password = password;
-        this.enabled = enabled;
-        this.roles = roles;
-    }
 
     public CustomUserDetails(User user) {
         this.userId = user.getId();
@@ -37,7 +31,9 @@ public class CustomUserDetails implements UserDetails {
         this.password = user.getPassword();
         this.enabled = user.isEnabled();
         this.roles = user.getRoleNames();
+        this.email = user.getEmail();
     }
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -49,11 +45,13 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public String getPassword() {
         return password;
-    }
+    }// thay vì user.getUsername()
+
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
+
     @Override
     public boolean isEnabled() {
         return enabled;

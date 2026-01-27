@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -32,6 +33,9 @@ public class Conversation {
     @ColumnDefault("now()")
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
+
+    @OneToMany(mappedBy = "conversation")
+    private List<Participant> participants;
 
 
 }
