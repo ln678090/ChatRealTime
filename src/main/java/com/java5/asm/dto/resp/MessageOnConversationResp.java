@@ -19,7 +19,10 @@ public record MessageOnConversationResp(
         String senderAvatar,
 
         // Cờ đánh dấu để FE dễ xử lý
-        Boolean isMyMessage
-
+        Boolean isMyMessage,
+        String attachmentUrl,
+        String attachmentName,
+        Long attachmentSize,
+        String attachmentType
 ) {
 }

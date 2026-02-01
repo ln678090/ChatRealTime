@@ -42,8 +42,7 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
+
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     runtimeOnly 'org.postgresql:postgresql'
@@ -62,8 +61,23 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    implementation 'org.msgpack:msgpack-core:0.9.11'
+    implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.11'
+// up image
+    implementation 'com.github.imagekit-developer:imagekit-java:2.0.0'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework:spring-messaging'
+
+
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+allprojects {
+    repositories {
+
+        maven { url 'https://jitpack.io' }
+    }
 }

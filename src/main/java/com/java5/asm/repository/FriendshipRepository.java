@@ -21,4 +21,16 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
             "WHERE (f.requester.id = :userId1 AND f.addressee.id = :userId2) " +
             "OR (f.requester.id = :userId2 AND f.addressee.id = :userId1)")
     Optional<Friendship> findFriendship(@Param("userId1") UUID userId1, @Param("userId2") UUID userId2);
+
+    Optional<Friendship> findByRequester_IdAndAddressee_Id(UUID requesterId, UUID addresseeId);
+
+    Optional<Friendship> findByRequester_IdAndAddressee_IdOrRequester_IdAndAddressee_Id(
+            UUID r1, UUID a1,
+            UUID r2, UUID a2
+    );
+
+    boolean existsByRequester_IdAndAddressee_IdOrRequester_IdAndAddressee_Id(
+            UUID r1, UUID a1,
+            UUID r2, UUID a2
+    );
 }

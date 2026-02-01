@@ -1,8 +1,14 @@
 package com.java5.asm.service.impl;
 
+import com.java5.asm.dto.ChatMessageDTO;
+import com.java5.asm.dto.enumclass.ConversationStatus;
+import com.java5.asm.dto.enumclass.MessageContentType;
 import com.java5.asm.dto.req.SendMessageReq;
 import com.java5.asm.dto.resp.ConversationResp;
 import com.java5.asm.dto.resp.MessageOnConversationResp;
+import com.java5.asm.dto.resp.page.PagedConversationResp;
+import com.java5.asm.dto.resp.page.PagedMessageResp;
+import com.java5.asm.dto.ws.BinaryMessagePayload;
 import com.java5.asm.entity.*;
 import com.java5.asm.repository.ConversationRepository;
 import com.java5.asm.repository.MessageRepository;
@@ -11,6 +17,10 @@ import com.java5.asm.repository.UserRepository;
 import com.java5.asm.service.ChatService;
 import com.java5.asm.service.FriendshipService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 class ChatServiceImpl
@@ -29,6 +40,8 @@ class ChatServiceImpl
     final ParticipantRepository participantRepository;
     final MessageRepository messageRepository;
     private final FriendshipService friendshipService;
+    private static final int PAGE_SIZE = 50;
+    private static final int CONVERSATION_PAGE_SIZE = 30;
 
     @Override
     public List<ConversationResp> getUserConversations() {
@@ -36,33 +49,49 @@ class ChatServiceImpl
         UUID currentUserId = UUID.fromString(userIdStr);
 
         List<Conversation> conversations = participantRepository.findConversationsByUserId(currentUserId);
-
         List<ConversationResp> responseList = new ArrayList<>();
 
         for (Conversation co : conversations) {
             String displayName;
             String displayAvatar;
             boolean isOnline = false;
-
-            if (co.getIsGroup()) { //
+            UUID otherUserId = null;
+            String otherUserName = null;
+            String friendshipStatus = "NONE";
+            boolean canMessage = true;
+            if (Boolean.TRUE.equals(co.getIsGroup())) {
+                // GROUP: giữ nguyên chatName của conversation
                 displayName = co.getChatName();
-                displayAvatar = "https://maunailxinh.com/wp-content/uploads/2025/06/cropped-avatar-an-danh-38.jpg"; // àm thơi fix cứng
-
+                displayAvatar = "https://maunailxinh.com/wp-content/uploads/2025/06/cropped-avatar-an-danh-38.jpg";
             } else {
-                // no group
-                Optional<User> optionalUser = participantRepository.findUserByConversationIdAndUserId(co.getId(), currentUserId);
-                if (optionalUser.isPresent()) {
-                    User otherUser = optionalUser.get();
-                    displayName = otherUser.getUsername();
+                // 1-1: lấy participant còn lại (khuyến nghị dùng method "other participant" để tránh trả nhầm chính mình)
+                Participant otherP = participantRepository
+                        .findOtherParticipantWithUser(co.getId(), currentUserId)
+                        .orElse(null);
+
+                if (otherP != null && otherP.getUser() != null) {
+                    User otherUser = otherP.getUser();
+
+                    String fullName = otherUser.getFullName();
+                    String name = (fullName != null && !fullName.isBlank())
+                            ? fullName
+                            : otherUser.getUsername();
+
+                    displayName = fullName;                 //  chatName = fullName
+                    otherUserName = otherUser.getUsername();               //  otherUserName = username
+                    otherUserId = otherUser.getId();
                     displayAvatar = otherUser.getAvatar();
-                    isOnline = otherUser.getIsOnline();
+                    isOnline = Boolean.TRUE.equals(otherUser.getIsOnline());
                 } else {
                     displayName = "Ẩn danh";
                     displayAvatar = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJEPrclJ5MXCjVP8r2pgXqvT8H9rYHIIYAdw&s";
                 }
             }
-            // get message last
-            Optional<Message> optionalLastMessage = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(co.getId());
+
+            // last message
+            Optional<Message> optionalLastMessage =
+                    messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(co.getId());
+
             String lastMessageContent = "";
             OffsetDateTime lastMessageTime = null;
 
@@ -73,34 +102,22 @@ class ChatServiceImpl
                 } else if ("FILE".equals(msg.getMessageType())) {
                     lastMessageContent = "Đã gửi một tập tin";
                 } else {
-                    // Nếu là tin nhắn của chính mình thì thêm chữ "Bạn: "
-                    if (msg.getSender().getId().equals(currentUserId)) {
-                        lastMessageContent = "Bạn: " + msg.getContent();
-                    } else {
-                        lastMessageContent = msg.getContent();
-                    }
+                    //  yêu cầu của bạn: không "Bạn: "
+                    lastMessageContent = msg.getContent();
                 }
                 lastMessageTime = msg.getCreatedAt();
             }
 
-            ConversationResp resp = new ConversationResp(
-                    co.getId(),
-                    displayName,
-                    displayAvatar,
-                    co.getIsGroup(),
-                    lastMessageContent,
-                    lastMessageTime,
-                    isOnline,
-                    0
-            );
+            responseList.add(mapToDto(co, currentUserId));
 
-            responseList.add(resp);
         }
-// sort list of message new
+
+        // sort desc by lastMessageTime
         responseList.sort(
                 Comparator.comparing(ConversationResp::lastMessageTime,
                         Comparator.nullsLast(Comparator.reverseOrder()))
         );
+
         return responseList;
     }
 
@@ -131,7 +148,7 @@ class ChatServiceImpl
                             .id(msg.getId())
                             .content(msg.getContent())
                             .mediaUrl(msg.getMediaUrl())
-                            .messageType(msg.getMessageType())
+                            .messageType(msg.getMessageType().name())
                             .status(msg.getStatus())
                             .createdAt(msg.getCreatedAt())
                             .senderId(sender.getId().toString())
@@ -195,7 +212,7 @@ class ChatServiceImpl
         newMessage.setConversation(conversation);
         newMessage.setSender(sender);
         newMessage.setContent(req.getContent());
-        newMessage.setMessageType(req.getMessageType());
+        newMessage.setMessageType(req.getContentType());
         newMessage.setStatus("SENT");
         newMessage.setCreatedAt(OffsetDateTime.now());
 
@@ -205,7 +222,7 @@ class ChatServiceImpl
                 .id(savedMessage.getId())
                 .content(savedMessage.getContent())
 //                .mediaUrl(savedMessage.getMediaUrl())
-                .messageType(savedMessage.getMessageType())
+                .messageType(savedMessage.getMessageType().name())
                 .status(savedMessage.getStatus())
                 .createdAt(savedMessage.getCreatedAt())
                 .senderId(sender.getId().toString())
@@ -319,12 +336,340 @@ class ChatServiceImpl
         //  tạm thời chỉ cần xóa participant là user sẽ không thấy chat đó nữa.
     }
 
+    /**
+     * @param userId
+     * @param conversationId
+     * @return
+     */
+    @Override
+    public boolean isMemberOfConversation(UUID userId, Long conversationId) {
+        return participantRepository.existsByConversationIdAndUserId(conversationId, userId);
+    }
+
+
+    /**
+     * @param payload
+     * @return
+     */
+//    @Override
+//    @Transactional
+//    public ChatMessageDTO saveBinaryMessage(BinaryMessagePayload payload) {
+//        if (payload == null) throw new IllegalArgumentException("payload is null");
+//        if (payload.getConversationId() == null) throw new IllegalArgumentException("conversationId is required");
+//        if (payload.getSenderId() == null) throw new IllegalArgumentException("senderId is required");
+//
+//        UUID senderId = payload.getSenderId();
+//        Long conversationId = payload.getConversationId();
+//
+//        // check membership
+//        boolean isParticipant = participantRepository.existsByConversationIdAndUserId(conversationId, senderId);
+//        if (!isParticipant) {
+//            throw new RuntimeException("Bạn không phải thành viên cuộc hội thoại này");
+//        }
+//
+//        User sender = userRepository.findById(senderId)
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//        Conversation conversation = conversationRepository.findById(conversationId)
+//                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+//
+//        // status checks (LEFT/BLOCKED/PENDING -> ACCEPTED giống sendMessage của bạn)
+//        Participant senderP = participantRepository
+//                .findByConversation_IdAndUser_Id(conversationId, senderId)
+//                .orElseThrow(() -> new RuntimeException("Bạn không thuộc cuộc hội thoại này"));
+//
+//        if (senderP.getStatus() == ConversationStatus.LEFT) {
+//            throw new RuntimeException("Bạn đã rời cuộc hội thoại");
+//        }
+//        if (senderP.getStatus() == ConversationStatus.BLOCKED) {
+//            throw new RuntimeException("Bạn đã chặn cuộc hội thoại này, hãy bỏ chặn để nhắn tin.");
+//        }
+//        if (senderP.getStatus() == ConversationStatus.PENDING) {
+//            senderP.setStatus(ConversationStatus.ACCEPTED);
+//            participantRepository.save(senderP);
+//        }
+//
+//        // create Message
+//        Message m = new Message();
+//        m.setConversation(conversation);
+//        m.setSender(sender);
+//        m.setContent(payload.getContent());
+//        m.setMessageType(payload.getContentType());
+//        m.setStatus("SENT");
+//        m.setCreatedAt(OffsetDateTime.now());
+//
+//        Message saved = messageRepository.save(m);
+//
+//        return messageToDTO(saved, saved.getStatus());
+//    }
+    // src/main/java/com/java5/asm/service/impl/ChatServiceImpl.java
+    @Override
+    @Transactional
+    public ChatMessageDTO saveBinaryMessage(BinaryMessagePayload payload) {
+        if (payload == null) throw new IllegalArgumentException("payload is null");
+        if (payload.getConversationId() == null) throw new IllegalArgumentException("conversationId is required");
+
+        UUID senderId = payload.getSenderId();
+        Long conversationId = payload.getConversationId();
+
+
+        parseFileContent(payload);
+
+        // Check membership
+        boolean isParticipant = participantRepository.existsByConversationIdAndUserId(conversationId, senderId);
+        if (!isParticipant) {
+            throw new RuntimeException("Bạn không phải thành viên cuộc hội thoại này");
+        }
+
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+
+        Participant senderP = participantRepository
+                .findByConversation_IdAndUser_Id(conversationId, senderId)
+                .orElseThrow(() -> new RuntimeException("Bạn không thuộc cuộc hội thoại này"));
+
+        if (senderP.getStatus() == ConversationStatus.LEFT) {
+            throw new RuntimeException("Bạn đã rời cuộc hội thoại");
+        }
+        if (senderP.getStatus() == ConversationStatus.BLOCKED) {
+            throw new RuntimeException("Bạn đã chặn cuộc hội thoại này, hãy bỏ chặn để nhắn tin.");
+        }
+        if (senderP.getStatus() == ConversationStatus.PENDING) {
+            senderP.setStatus(ConversationStatus.ACCEPTED);
+            participantRepository.save(senderP);
+        }
+
+
+        Message m = new Message();
+        m.setConversation(conversation);
+        m.setSender(sender);
+        m.setContent(payload.getContent());
+        m.setMessageType(payload.getContentType());
+
+        m.setMessageType(payload.getContentType() != null ? payload.getContentType() : MessageContentType.TEXT);
+
+        m.setStatus("SENT");
+        m.setCreatedAt(OffsetDateTime.now());
+
+
+        m.setAttachmentUrl(payload.getAttachmentUrl());
+        m.setAttachmentName(payload.getAttachmentName());
+        m.setAttachmentSize(payload.getAttachmentSize());
+        m.setAttachmentType(payload.getAttachmentType());
+
+        Message saved = messageRepository.save(m);
+
+        return messageToDTO(saved);
+    }
+
+
+    private void parseFileContent(BinaryMessagePayload payload) {
+        String content = payload.getContent();
+
+        if (content == null || !content.startsWith("FILE:")) {
+            return;
+        }
+
+        try {
+            // Format: FILE:url|name|size|type
+            String fileData = content.substring(5);
+            String[] parts = fileData.split("\\|");
+
+            if (parts.length >= 4) {
+                payload.setAttachmentUrl(parts[0]);
+                payload.setAttachmentName(parts[1]);
+                payload.setAttachmentSize(Long.parseLong(parts[2]));
+
+                String fileType = parts[3].toUpperCase();
+                MessageContentType contentType = switch (fileType) {
+                    case "IMAGE" -> MessageContentType.IMAGE;
+                    case "VIDEO" -> MessageContentType.VIDEO;
+                    case "AUDIO" -> MessageContentType.AUDIO;
+                    default -> MessageContentType.FILE;
+                };
+
+                payload.setContentType(contentType);
+                payload.setContent(""); // Clear content (file info is in separate fields)
+
+                log.info("Parsed file message: type={}, name={}", contentType, parts[1]);
+            }
+        } catch (Exception e) {
+            log.error(" Failed to parse FILE format", e);
+        }
+    }
+
+    //  Convert Message entity to DTO
+    private ChatMessageDTO messageToDTO(Message m) {
+        ChatMessageDTO dto = new ChatMessageDTO();
+        dto.setId(m.getId());
+        dto.setConversationId(m.getConversation().getId());
+        dto.setSenderId(m.getSender().getId());
+        dto.setSenderName(m.getSender().getUsername());
+        dto.setSenderAvatar(m.getSender().getAvatar());
+        dto.setContent(m.getContent());
+        dto.setCreatedAt(m.getCreatedAt());
+
+        //  MessageType as String (enum.name())
+        dto.setMessageType(m.getMessageType().name()); // "TEXT", "IMAGE", "VIDEO", "FILE"
+
+        //  File attachment fields
+        dto.setAttachmentUrl(m.getAttachmentUrl());
+        dto.setAttachmentName(m.getAttachmentName());
+        dto.setAttachmentSize(m.getAttachmentSize());
+        dto.setAttachmentType(m.getAttachmentType());
+
+        return dto;
+    }
+
+
+    /**
+     * @param messageId
+     * @param userId
+     */
+    @Override
+    @Transactional
+    public void markAsDelivered(Long messageId, UUID userId) {
+//        messageReceiptRepository.findByMessageIdAndRecipientId(messageId, userId)
+//                .ifPresent(receipt -> {
+//                    receipt.setDeliveredAt(LocalDateTime.now());
+//                    messageReceiptRepository.save(receipt);
+//                });
+    }
+
+    /**
+     * @param messageId
+     * @param userId
+     */
+    @Override
+    @Transactional
+    public void markAsSeen(Long messageId, UUID userId) {
+//        messageReceiptRepository.findByMessageIdAndRecipientId(messageId, userId)
+//                .ifPresent(receipt -> {
+//                    receipt.setSeenAt(LocalDateTime.now());
+//                    messageReceiptRepository.save(receipt);
+//                });
+    }
+
+    /**
+     * @param conversationId
+     * @param userId
+     * @param isTyping
+     */
+    @Override
+    public void publishTypingEvent(Long conversationId, UUID userId, boolean isTyping) {
+        Map<String, Object> evt = new HashMap<>();
+        evt.put("conversationId", conversationId);
+        evt.put("userId", userId.toString());
+        evt.put("isTyping", isTyping);
+        evt.put("ts", System.currentTimeMillis());
+
+        // Nếu bạn có SimpMessagingTemplate ở service thì inject vào và send:
+        // messagingTemplate.convertAndSend("/topic/conversations/" + conversationId + "/typing", evt);
+    }
+
+    /**
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PagedConversationResp getUserConversationsPaged(int page, int size) {
+        UUID currentUserId = UUID.fromString(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Conversation> conversationPage = participantRepository.findConversationsByUserIdPaged(currentUserId, pageable);
+
+        // Map sang DTO
+        List<ConversationResp> items = conversationPage.getContent().stream()
+                .map(conv -> mapToDto(conv, currentUserId))
+                .collect(Collectors.toList());
+
+
+        return PagedConversationResp.builder()
+                .items(items)
+                .currentPage(page)
+                .totalPages(conversationPage.getTotalPages())
+                .totalItems(conversationPage.getTotalElements())
+                .hasNext(conversationPage.hasNext())
+                .build();
+    }
+
+    /**
+     * @param conversationId
+     * @param userId
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PagedMessageResp getMessagesPaged(Long conversationId, UUID userId, int page, int size) {
+        // 1. Check permission
+        OffsetDateTime joinedAt = participantRepository
+                .findJoinedAt(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("Not participant"));
+
+        // 2. Query messages (DESC order for pagination, latest first)
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Message> messagePage = messageRepository.findMessagesByConversationPaged(
+                conversationId,
+                joinedAt,
+                pageable
+        );
+
+        // 3. Map to DTO (reverse để hiển thị ASC - cũ -> mới)
+        List<MessageOnConversationResp> items = messagePage.getContent().stream()
+                .map(msg -> {
+                    User sender = msg.getSender();
+                    boolean isMine = sender.getId().equals(userId);
+
+
+                    return MessageOnConversationResp.builder()
+                            .id(msg.getId())
+                            .content(msg.getContent())
+                            .mediaUrl(msg.getMediaUrl())
+                            .messageType(msg.getMessageType().name())
+                            .status(msg.getStatus())
+                            .createdAt(msg.getCreatedAt())
+                            .senderId(sender.getId().toString())
+                            .senderName(sender.getUsername())
+                            .senderAvatar(sender.getAvatar())
+                            .isMyMessage(isMine)
+
+
+                            .attachmentUrl(msg.getAttachmentUrl())
+                            .attachmentName(msg.getAttachmentName())
+                            .attachmentSize(msg.getAttachmentSize())
+                            .attachmentType(msg.getAttachmentType())
+
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // 4. Reverse order (vì query DESC, nhưng UI cần ASC)
+        Collections.reverse(items);
+
+        return PagedMessageResp.builder()
+                .items(items)
+                .currentPage(page)
+                .totalPages(messagePage.getTotalPages())
+                .totalItems(messagePage.getTotalElements())
+                .hasNext(messagePage.hasNext())
+                .build();
+    }
+
 
     private ConversationResp mapToDto(Conversation c, UUID currentUserId) {
         String chatName = c.getChatName();
         String avatar = null;
         boolean isOnline = false;
-
+        UUID otherUserId = null;
+        String otherUserName = null;
         // 1-1 lấy info user còn lại để set chatName  avatar  online
         if (!c.getIsGroup()) {
             Participant other = participantRepository
@@ -333,9 +678,9 @@ class ChatServiceImpl
 
             if (other != null) {
                 User u = other.getUser();
-                chatName = (u.getFullName() != null && !u.getFullName().isBlank())
-                        ? u.getFullName()
-                        : u.getUsername();
+                otherUserId = u.getId();
+                otherUserName = u.getUsername();
+                chatName = u.getFullName();
                 avatar = u.getAvatar();      // hoặc avatarUrl tuỳ
                 isOnline = Boolean.TRUE.equals(u.getIsOnline());
             }
@@ -349,22 +694,59 @@ class ChatServiceImpl
         var lastOpt = messageRepository.findFirstByConversation_IdOrderByCreatedAtDesc(c.getId());
         String lastMessage = lastOpt.map(Message::getContent).orElse(null);
         OffsetDateTime lastTime = lastOpt.map(Message::getCreatedAt).orElse(null);
+        String friendshipStatus = "NONE";
+        boolean canMessage = true;
+
+        if (!Boolean.TRUE.equals(c.getIsGroup()) && otherUserId != null) {
+            friendshipStatus = friendshipService.getUiStatus(currentUserId, otherUserId);
+
+            // nếu bạn muốn chặn nhắn tin khi bị BLOCKED
+            canMessage = !"BLOCKED".equals(friendshipStatus);
+        }
 
         //   chưa làm read-receipt thì set 0 tạm
         int unreadCount = 0;
 
-        return ConversationResp.builder()
-                .conversationId(c.getId())
-                .chatName(chatName)
-                .avatar(avatar)
-                .isGroup(c.getIsGroup())
-                .lastMessage(lastMessage)
-                .lastMessageTime(lastTime)
-                .isOnline(isOnline)
-                .unreadCount(unreadCount)
-
+//        ConversationResp.builder().conversationId(c.getId()).chatName().avatar().isGroup().lastMessage().lastMessageTime().isOnline().unreadCount().otherUserId().otherUserName().otherUserAvatar().build();
+        ConversationResp.ConversationRespBuilder builder = ConversationResp.builder();
+        builder.conversationId(c.getId());
+        builder.chatName(chatName);
+        builder.avatar(avatar);
+        builder.isGroup(c.getIsGroup());
+        builder.lastMessage(lastMessage);
+        builder.lastMessageTime(lastTime);
+        builder.isOnline(isOnline);
+        builder.unreadCount(unreadCount);
+        builder.otherUserId(otherUserId);
+        builder.otherUserName(otherUserName);
+        builder.friendshipStatus(friendshipStatus);
+        builder.canMessage(canMessage);
+        return builder
                 .build();
     }
 
+//    private ChatMessageDTO messageToDTO(Message message, String status) {
+//        return ChatMessageDTO.builder()
+//                .id(message.getId())
+//                .conversationId(message.getConversation().getId())
+//                .senderId(message.getSender().getId())
+//                .content(message.getContent())
+//                .messageType(message.getMessageType().name())
+//                .status(status)
+//                .createdAt(message.getCreatedAt().toLocalDateTime())
+//                .build();
+//    }
 
+    private MessageOnConversationResp mapMessageToResp(Message msg, UUID currentUserId) {
+        // Code mapping hiện tại của bạn
+        return MessageOnConversationResp.builder()
+                .id(msg.getId())
+                .content(msg.getContent())
+                .createdAt(msg.getCreatedAt())
+                .senderId(msg.getSender().getId().toString())
+                .senderName(msg.getSender().getUsername())
+                .senderAvatar(msg.getSender().getAvatar())
+                .isMyMessage(msg.getSender().getId().equals(currentUserId))
+                .build();
+    }
 }

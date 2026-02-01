@@ -1,7 +1,9 @@
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from "axios";
 import {useAuthStore} from "../../store/auth.store.ts";
+import {getDomain} from "./api.ts";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8808/api";
+const domain = getDomain();
+const baseURL = import.meta.env.VITE_API_URL || domain + "/api";
 export const axiosClient = axios.create(
     {
         baseURL,

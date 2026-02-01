@@ -1,5 +1,6 @@
 package com.java5.asm.entity;
 
+import com.java5.asm.dto.enumclass.ConversationStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

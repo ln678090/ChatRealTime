@@ -3,6 +3,8 @@ package com.java5.asm.repository;
 import com.java5.asm.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,4 +51,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                   AND u.id <> :currentUserId
             """)
     List<User> searchUsers(String keyword, UUID currentUserId);
+
+    <T> ScopedValue<T> findById(UUID id, Sort sort, Limit limit);
 }

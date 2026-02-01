@@ -22,7 +22,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -57,14 +56,15 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
 
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf((csrf) -> csrf.ignoringRequestMatchers("/ws/**", "/api/**"))
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/auth/**", "/ws/**").permitAll();
+                    auth.requestMatchers("/ws-binary-chat").permitAll();
                     auth.requestMatchers("/api/conversations/**").hasRole("USER");
                     auth.requestMatchers("/api/messages/**").hasRole("USER");
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
-
+                    auth.requestMatchers("/ws-chat", "/ws-chat/**").permitAll();
                     auth.anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2

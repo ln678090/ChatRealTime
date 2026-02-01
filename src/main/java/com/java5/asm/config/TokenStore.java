@@ -21,4 +21,10 @@ public class TokenStore {
     public void revokeJti(String jti) {
         redisTemplate.delete(RedisConfig.KEY_AT_JTI + jti);
     }
+
+    public boolean isJtiAllowed(String jti, String userId) {
+        String val = redisTemplate.opsForValue().get(RedisConfig.KEY_AT_JTI + jti);
+        return val != null && val.equals(userId);
+    }
+
 }

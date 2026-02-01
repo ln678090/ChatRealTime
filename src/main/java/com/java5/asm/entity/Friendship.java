@@ -1,8 +1,8 @@
 package com.java5.asm.entity;
 
+import com.java5.asm.dto.enumclass.FriendshipStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
@@ -33,10 +33,10 @@ public class Friendship {
     @JoinColumn(name = "addressee_id", nullable = false)
     private User addressee;
 
-    @Size(max = 20)
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private FriendshipStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -48,5 +48,9 @@ public class Friendship {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) createdAt = OffsetDateTime.now();
+    }
 
 }

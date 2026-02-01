@@ -18,6 +18,7 @@ class AuthenticationRestController {
 
     final AuthenticationService authenticationService;
 
+
     @PostMapping("/login")
     public ResponseEntity<ApiResp<Object>> login(@Valid @RequestBody LoginRequest request) {
         log.info("Received login request:");
@@ -29,6 +30,7 @@ class AuthenticationRestController {
             @CookieValue(name = "refreshToken", required = false) String refreshToken
     ) {
         log.info("Received refresh token request:");
+//        log.info("Is Virtual on refresh token: {}", Thread.currentThread().isVirtual());
         return authenticationService.refreshToken(refreshToken);
     }
 

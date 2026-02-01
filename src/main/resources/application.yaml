@@ -33,6 +33,14 @@ spring:
     redis:
       host: localhost
       port: 6379
+  websocket:
+    stomp:
+      heartbeat:
+        server: 15000
+        client: 10000
+  threads:
+    virtual:
+      enabled: true
 #rsa:
 #  public-key: ${RSA_PUBLIC_KEY}
 #  private-key: ${RSA_PRIVATE_KEY}
@@ -51,4 +59,8 @@ hash:
     parallelism: 1
     type: id
     version: 19
+imagekit:
+  public-key: ${IMAGEKIT_PUBLIC_KEY}
+  private-key: ${IMAGEKIT_PRIVATE_KEY}
+  url-endpoint: ${IMAGEKIT_URL_ENDPOINT}
 

@@ -4,6 +4,8 @@ import {Navigate, Route, Routes} from "react-router-dom";
 import AuthPage from "./pages/AuthPage.tsx";
 import MessengerPage from "./pages/MessengerPage.tsx";
 import PrivateRoute from "./PrivateRoute.tsx";
+import {WebSocketProvider} from "./context/WebSocketContext.tsx";
+import {GlobalFriendEventListener} from "./components/GlobalFriendEventListener.tsx";
 
 
 function App() {
@@ -13,11 +15,14 @@ function App() {
 
         <Routes>
             <Route path={'/auth'} element={<AuthPage/>}/>
-       
+
 
             <Route path={'/'} element={
                 <PrivateRoute>
-                    <MessengerPage/>
+                    <WebSocketProvider>
+                        <GlobalFriendEventListener/>
+                        <MessengerPage/>
+                    </WebSocketProvider>
                 </PrivateRoute>
             }/>
 

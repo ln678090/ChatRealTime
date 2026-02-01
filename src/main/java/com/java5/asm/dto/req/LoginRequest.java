@@ -12,6 +12,7 @@ public record LoginRequest(
         @NotBlank(message = "Mật khẩu không được để trống")
         @Size(min = 3, message = "Mật khẩu phải có từ  3-50 ký tự", max = 50)
         String password,
+        
         boolean rememberMe
 ) {
 }

@@ -1,9 +1,12 @@
 package com.java5.asm.repository;
 
 import com.java5.asm.entity.Message;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -48,4 +51,15 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @EntityGraph(attributePaths = {"sender"})
     Optional<Message> findFirstByConversation_IdOrderByCreatedAtDesc(Long conversationId);
 
+    @Query("""
+            SELECT m FROM Message m
+            WHERE m.conversation.id = :conversationId
+            AND m.createdAt > :joinedAt
+            ORDER BY m.createdAt DESC
+            """)
+    Page<Message> findMessagesByConversationPaged(
+            @Param("conversationId") Long conversationId,
+            @Param("joinedAt") OffsetDateTime joinedAt,
+            Pageable pageable
+    );
 }

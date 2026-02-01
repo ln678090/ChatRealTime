@@ -1,11 +1,15 @@
 package com.java5.asm.config;
 
+import com.java5.asm.entity.User;
 import com.java5.asm.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
@@ -22,5 +26,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new CustomUserDetails(
                 user
         );
+    }
+
+    //  tìm bằng UUID
+    @Transactional(readOnly = true)
+    public UserDetails loadUserById(UUID userId) {
+        User user = userRepository.findByIdWithRoles(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
+        return new CustomUserDetails(user);
     }
 }

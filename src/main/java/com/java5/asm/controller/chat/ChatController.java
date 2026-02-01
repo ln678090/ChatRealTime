@@ -6,6 +6,8 @@ import com.java5.asm.dto.resp.ApiResp;
 import com.java5.asm.dto.resp.ConversationResp;
 import com.java5.asm.dto.resp.MessageOnConversationResp;
 import com.java5.asm.dto.resp.UserFindUserResp;
+import com.java5.asm.dto.resp.page.PagedConversationResp;
+import com.java5.asm.dto.resp.page.PagedMessageResp;
 import com.java5.asm.service.ChatService;
 import com.java5.asm.service.UserService;
 import jakarta.validation.Valid;
@@ -42,6 +44,53 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     *
+     * GET /api/conversations/paged?page=0&size=20
+     */
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/conversations/paged")
+    public ResponseEntity<ApiResp<PagedConversationResp>> getConversationsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+
+
+        PagedConversationResp data = chatService.getUserConversationsPaged(page, size);
+
+        return ResponseEntity.ok(ApiResp.<PagedConversationResp>builder()
+                .code("success")
+                .message("Get conversations paged successfully")
+                .data(data)
+                .timestamp(LocalDateTime.now().toString())
+                .build());
+    }
+
+    /**
+     *
+     * GET /api/messages/{conversationId}/paged?page=0&size=50
+     */
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/messages/{conversationId}/paged")
+    public ResponseEntity<ApiResp<PagedMessageResp>> getMessagesPaged(
+            @PathVariable Long conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        UUID currentUserId = UUID.fromString(
+                SecurityContextHolder.getContext().getAuthentication().getName()
+        );
+
+        PagedMessageResp data = chatService.getMessagesPaged(conversationId, currentUserId, page, size);
+
+        return ResponseEntity.ok(ApiResp.<PagedMessageResp>builder()
+                .code("success")
+                .message("Get messages paged successfully")
+                .data(data)
+                .timestamp(LocalDateTime.now().toString())
+                .build());
+    }
+
     @PreAuthorize("hasRole('USER')")
     @GetMapping("/messages/{conversationId}")
     public ResponseEntity<ApiResp<Object>> getMessage(
@@ -58,6 +107,7 @@ public class ChatController {
                         .timestamp(LocalDateTime.now().toString())
                         .build());
     }
+
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/messages")
