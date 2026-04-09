@@ -11,6 +11,10 @@ import React, {useEffect, useRef, useState} from "react";
 import axiosClient from "../../services/api/axiosClient.ts";
 import NewChatModal from "./NewChatModal.tsx";
 import {useGlobalSocket} from "../../context/WebSocketContext.tsx";
+import withReactContent from "sweetalert2-react-content";
+import Swal from "sweetalert2";
+import axiosClientchatbe from "../../services/api/axiosClientchatbe.ts";
+// import {IconButton} from "@mui/material";
 
 const getLocalUnread = (): string[] => {
     try {
@@ -104,11 +108,27 @@ const ConversationList = () => {
         }
     });
 
+    const MySwal = withReactContent(Swal);
     const handleDeleteChat = (e: React.MouseEvent, conversationId: number) => {
         e.stopPropagation();
-        if (window.confirm("Bạn chắc chắn muốn xóa cuộc trò chuyện này?")) {
-            deleteChatMutation.mutate(conversationId);
-        }
+        MySwal.fire({
+            title: 'Xác nhận xóa',
+            text: "Bạn chắc chắn muốn xóa cuộc trò chuyện này?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ cho nút đăng xuất
+            cancelButtonColor: '#3085d6', // Màu xám/xanh cho nút huỷ
+            confirmButtonText: 'Có, xóa!',
+            cancelButtonText: 'Huỷ'
+        }).then((result) => {
+            if (result.isConfirmed) {
+
+                deleteChatMutation.mutate(conversationId);
+            }
+        });
+        // if (window.confirm("Bạn chắc chắn muốn xóa cuộc trò chuyện này?")) {
+        //     deleteChatMutation.mutate(conversationId);
+        // }
     };
 
     const toggleMenu = (e: React.MouseEvent, id: number) => {
@@ -150,7 +170,7 @@ const ConversationList = () => {
         if (!allConversations || allConversations.length === 0) return;
 
         const sendHeartbeat = () => {
-            axiosClient.post("/presence/heartbeat").catch(() => {
+            axiosClientchatbe.post("/presence/heartbeat").catch(() => {
             });
         };
 
@@ -161,7 +181,7 @@ const ConversationList = () => {
 
             if (userIds.length > 0) {
                 const uniqueIds = Array.from(new Set(userIds));
-                axiosClient.post("/presence/check", uniqueIds)
+                axiosClientchatbe.post("/presence/check", uniqueIds)
                     .then((res) => {
                         setOnlineStatusMap(prev => ({...prev, ...res.data}));
                     })

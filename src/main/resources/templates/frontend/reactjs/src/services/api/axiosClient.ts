@@ -1,9 +1,9 @@
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from "axios";
 import {useAuthStore} from "../../store/auth.store.ts";
-import {getDomain} from "./api.ts";
+import {getConnectHubApiUrl} from "./api.ts";
 
-const domain = getDomain();
-const baseURL = import.meta.env.VITE_API_URL || domain + "/api";
+const domain = getConnectHubApiUrl();
+const baseURL =  domain + "/api";
 export const axiosClient = axios.create(
     {
         baseURL,
@@ -47,7 +47,7 @@ const processQueue = (error: any, token?: string) => {
 };
 
 const refreshAccessToken = async (): Promise<string> => {
-    const resp = await axiosClient.post("/auth/refresh-token");
+    const resp = await axiosClient.post("/auth/refresh");
     const accessToken = resp?.data?.data?.accessToken ?? resp?.data?.accessToken ?? null;
     if (!accessToken || typeof accessToken !== "string") {
         throw new Error("Refresh response does not contain accessToken");
@@ -70,7 +70,7 @@ axiosClient.interceptors.response.use(
         const url: string = originalRequest?.url || "";
 
         const isAuthEndpoint =
-            url.includes("/auth/refresh-token") ||
+            url.includes("/auth/refresh") ||
             url.includes("/auth/login") ||
             url.includes("/auth/logout");
 
@@ -110,4 +110,26 @@ axiosClient.interceptors.response.use(
 
     }
 );
+let lastRefreshTime = Date.now();
+
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        const token = useAuthStore.getState().accessToken;
+        const timeSinceLastRefresh = now - lastRefreshTime;
+
+        // Nếu đã hơn 10 phút kể từ lần refresh cuối -> refresh lại
+        if (timeSinceLastRefresh > 10 * 60 * 1000 || !token) {
+            try {
+                lastRefreshTime = now;
+                // const newToken = await refreshAccessToken();
+                console.log('[Auth] Token refreshed on tab focus');
+            } catch {
+                // Token hết hạn -> logout
+                useAuthStore.getState().setAccessToken(null);
+                window.location.href = '/auth';
+            }
+        }
+    }
+});
 export default axiosClient;

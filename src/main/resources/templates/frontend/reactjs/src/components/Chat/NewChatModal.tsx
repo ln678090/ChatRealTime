@@ -1,9 +1,11 @@
-import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {useMutation} from "@tanstack/react-query";
 import {useState} from "react";
 import {useChatStore} from "../../store/chat.store";
-import axiosClient from "../../services/api/axiosClient";
+
 import {IoClose, IoSearch} from "react-icons/io5";
 import {BsChatDots} from "react-icons/bs";
+import toast from "react-hot-toast";
+import axiosClientchatbe from "../../services/api/axiosClientchatbe";
 
 interface UserResult {
     id: string;
@@ -22,7 +24,7 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<UserResult[]>([]);
     const [search, setSearch] = useState(false);
-    const queryClient = useQueryClient();
+    // const queryClient = useQueryClient();
     const {setActiveConversation} = useChatStore();
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -30,11 +32,11 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
         if (!query.trim()) return;
         setSearch(true);
         try {
-            const res = await axiosClient.get(`/users/search?query=${encodeURIComponent(query)}`);
+            const res = await axiosClientchatbe.get(`/users/search?query=${encodeURIComponent(query)}`);
             setResults(res.data.data);
         } catch (error) {
             console.error("search error:", error);
-            alert("Search lỗi. Xem console để biết chi tiết.");
+            toast.error("Search lỗi. Xem console để biết chi tiết.");
         } finally {
             setSearch(false);
         }
@@ -42,13 +44,13 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
 
     const startChatMutation = useMutation({
         mutationFn: async (receiverId: string) => {
-            const res = await axiosClient.post(`/conversations/start`, {receiverId});
+            const res = await axiosClientchatbe.post(`/conversations/start`, {receiverId});
             return res.data.data;
         },
         onError: (err: any) => {
             console.error("start chat error:", err);
             const msg = err?.response?.data?.message ?? "Không thể bắt đầu cuộc trò chuyện.";
-            alert(msg);
+            toast.error(msg);
         },
         // [FIX] Thêm tham số thứ 2 là variables (chính là receiverId truyền vào lúc gọi mutate)
         onSuccess: (newConversation: any, receiverId: string) => {
@@ -87,7 +89,7 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
 
     const addFriendMutation = useMutation({
         mutationFn: async (targetUserId: string) => {
-            return axiosClient.post("/friends/request", {targetUserId});
+            return axiosClientchatbe.post("/friends/request", {targetUserId});
         },
         onSuccess: (_res, targetUserId) => {
             setResults((prev) =>
@@ -97,12 +99,12 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
         onError: (err: any) => {
             console.error("friends/request error:", err);
             const msg = err?.response?.data?.message ?? "Gửi lời mời kết bạn thất bại.";
-            alert(msg);
+            toast.error(msg);
         },
     });
 
     const cancelFriendMutation = useMutation({
-        mutationFn: (targetUserId: string) => axiosClient.post("/friends/cancel", {targetUserId}),
+        mutationFn: (targetUserId: string) => axiosClientchatbe.post("/friends/cancel", {targetUserId}),
         onSuccess: (_r, targetUserId) => {
             setResults((prev) =>
                 prev.map((u) => (u.id === targetUserId ? {...u, friendshipStatus: "NONE"} : u))
@@ -110,12 +112,12 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
         },
         onError: (e: any) => {
             console.error("friends/cancel error:", e);
-            alert(e?.response?.data?.message ?? "Hủy lời mời thất bại.");
+            toast.error(e?.response?.data?.message ?? "Hủy lời mời thất bại.");
         },
     });
 
     const acceptFriendMutation = useMutation({
-        mutationFn: (requesterId: string) => axiosClient.post("/friends/accept", {requesterId}),
+        mutationFn: (requesterId: string) => axiosClientchatbe.post("/friends/accept", {requesterId}),
         onSuccess: (_r, requesterId) => {
             setResults((prev) =>
                 prev.map((u) => (u.id === requesterId ? {...u, friendshipStatus: "FRIEND"} : u))
@@ -123,7 +125,7 @@ const NewChatModal = ({onClose}: NewChatModalProps) => {
         },
         onError: (e: any) => {
             console.error("friends/accept error:", e);
-            alert(e?.response?.data?.message ?? "Chấp nhận kết bạn thất bại.");
+            toast.error(e?.response?.data?.message ?? "Chấp nhận kết bạn thất bại.");
         },
     });
 

@@ -1,0 +1,11 @@
+Remove-Item all-react-code.txt -ErrorAction SilentlyContinue
+
+Get-ChildItem -Recurse -Include *.ts,*.js,*.tsx,*.jsx |
+Where-Object { $_.FullName -notmatch "node_modules|dist|build|.git" } |
+ForEach-Object {
+    "================ FILE: $($_.FullName) ================" | Out-File all-react-code.txt -Append
+    Get-Content $_.FullName | Out-File all-react-code.txt -Append
+    "`n" | Out-File all-react-code.txt -Append
+}
+
+Write-Output "Done!"

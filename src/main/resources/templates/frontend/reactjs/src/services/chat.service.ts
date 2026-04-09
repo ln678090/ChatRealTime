@@ -1,4 +1,5 @@
-import axiosClient from "./api/axiosClient.ts";
+
+import axiosClientchatbe from "./api/axiosClientchatbe.ts";
 
 export interface ConversationDTO {
     conversationId: number;
@@ -46,17 +47,17 @@ export interface PagedMessageResp {
 export const chatService = {
     // lay danh sach hop thoai
     getConversations: async () => {
-        const res = await axiosClient.get('/conversations');
+        const res = await axiosClientchatbe.get('/conversations');
         return res.data.data;
     },
     // lay danh sach hop thoai paged
     async getConversationsPaged(page: number = 0, size: number = 20): Promise<PagedConversationResp> {
-        const res = await axiosClient.get(`/conversations/paged?page=${page}&size=${size}`);
+        const res = await axiosClientchatbe.get(`/conversations/paged?page=${page}&size=${size}`);
         return res.data.data;
     },
     // lay tin nhan 1 hoi thoai
     getMessages: async (conversationId: number) => {
-        const res = await axiosClient.get(`/messages/${conversationId}`);
+        const res = await axiosClientchatbe.get(`/messages/${conversationId}`);
         return res.data.data;
     },
     async getMessagesPaged(
@@ -64,19 +65,19 @@ export const chatService = {
         page: number = 0,
         size: number = 50
     ): Promise<PagedMessageResp> {
-        const res = await axiosClient.get(
+        const res = await axiosClientchatbe.get(
             `/messages/${conversationId}/paged?page=${page}&size=${size}`
         );
         return res.data.data;
     },
     // gui tin nhan
-    sendMessage: async (conversationId: number, content: string, type: string = 'TEXT') => {
+    sendMessage: async (conversationId: number, content: string = 'TEXT') => {
         const payload = {
             conversationId: conversationId,
             content: content,
             messageType: "TEXT"
         };
-        const res = axiosClient.post('/messages', payload);
+        const res = axiosClientchatbe.post('/messages', payload);
         return res;
     }
 };

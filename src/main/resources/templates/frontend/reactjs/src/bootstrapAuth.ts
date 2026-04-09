@@ -1,34 +1,32 @@
-import axiosClient from "./services/api/axiosClient.ts";
-import {useAuthStore} from "./store/auth.store.ts";
+import axios from 'axios';
+import {useAuthStore} from './store/auth.store';
 
-let booting = false;
+import { getConnectHubApiUrl } from './services/api/api';
+import axiosClientchatbe from './services/api/axiosClientchatbe';
 
-export const bootstrapAuth = async () => {
-    if (booting) return;
-    booting = true;
-
-    const {setAccessToken, setAuthReady} = useAuthStore.getState();
+export async function bootstrapAuth(): Promise<void> {
+    const domain=getConnectHubApiUrl();
     try {
-        const res = await axiosClient.post("/auth/refresh-token");
-        const token =
-            res?.data?.data?.accessToken ?? res?.data?.accessToken ?? null;
+        // Dùng axios thuần, bỏ qua mọi Interceptor để không bị nuốt Promise
+        const resp = await axios.post(`${domain}/api/auth/refresh`, {}, {
+            withCredentials: true
+        });
 
-        if (token) useAuthStore.getState().setAccessToken(token);
-    } catch {
-        // không có refresh cookie hoặc hết hạn => thôi
-        useAuthStore.getState().clear();
-        setAccessToken(null);
+        const accessToken = resp?.data?.data?.accessToken ?? resp?.data?.accessToken ?? null;
+
+        if (accessToken) {
+            useAuthStore.getState().setAccessToken(accessToken);
+
+            // Fetch thông tin user sau khi có token
+            const userResp = await axiosClientchatbe.get('/users/me');
+            const user = userResp?.data?.data ?? userResp?.data ?? null;
+            useAuthStore.getState().setUser(user);
+        }
+    } catch (_) {
+        // Rơi vào đây nếu bị 401 (chưa đăng nhập) hoặc Token hết hạn
+        useAuthStore.getState().setAccessToken(null);
     } finally {
-        booting = false;
-        setAuthReady(true);
+        // Đảm bảo lệnh này luôn được gọi để bỏ "Đang khởi động..."
+        useAuthStore.getState().setAuthReady(true);
     }
 }
-
-//  chạy lúc app mount
-bootstrapAuth();
-
-//  chạy lại khi quay lại tab
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") bootstrapAuth();
-});
-window.addEventListener("focus", () => bootstrapAuth());
