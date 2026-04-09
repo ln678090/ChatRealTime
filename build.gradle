@@ -13,7 +13,7 @@ description = 'Demo project for Spring Boot'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 configurations {
@@ -24,7 +24,9 @@ configurations {
 repositories {
     mavenCentral()
 }
-
+springBoot {
+    mainClass = 'com.java5.asm.AsmApplication'
+}
 dependencies {
 //    implementation 'org.springframework.boot:spring-boot-starter-web'
     // Loại bỏ Tomcat khỏi spring-boot-starter-web

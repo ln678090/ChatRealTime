@@ -24,7 +24,8 @@
 #EXPOSE 10000
 #ENTRYPOINT ["java", "-Djava.net.preferIPv4Stack=true", "-Dspring.profiles.active=prod", "-Dserver.port=10000", "-Dserver.address=0.0.0.0", "-jar", "app.jar"]
 # --- BUILD ---
-FROM eclipse-temurin:25-jdk as builder
+#FROM eclipse-temurin:25-jdk as builder
+FROM eclipse-temurin:21-jdk-alpine as builder
 WORKDIR /app
 
 COPY . .
@@ -32,7 +33,8 @@ RUN chmod +x gradlew
 RUN ./gradlew build -x test --no-daemon
 
 # --- RUN ---
-FROM eclipse-temurin:25-jre
+#FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 COPY --from=builder /app/build/libs/*.jar app.jar

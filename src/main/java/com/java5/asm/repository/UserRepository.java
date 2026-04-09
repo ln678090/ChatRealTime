@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -55,7 +56,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             """)
     List<User> searchUsers(String keyword, UUID currentUserId);
 
-    <T> ScopedValue<T> findById(UUID id, Sort sort, Limit limit);
+//    <T> ScopedValue<T> findById(UUID id, Sort sort, Limit limit);
 
     // Tránh N+1 khi load danh sách user lên grid admin
 //    @EntityGraph(attributePaths = {"userRoles", "userRoles.role"})
