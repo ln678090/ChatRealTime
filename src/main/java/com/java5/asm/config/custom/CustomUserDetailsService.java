@@ -1,4 +1,4 @@
-package com.java5.asm.config;
+package com.java5.asm.config.custom;
 
 import com.java5.asm.entity.User;
 import com.java5.asm.repository.UserRepository;

@@ -1,0 +1,11 @@
+$base = "src\main\java"
+
+Remove-Item all-java-code.txt -ErrorAction SilentlyContinue
+
+Get-ChildItem -Recurse $base -Filter *.java | ForEach-Object {
+    "================ FILE: $($_.FullName) ================" | Out-File all-java-code.txt -Append
+    Get-Content $_.FullName | Out-File all-java-code.txt -Append
+    "`n" | Out-File all-java-code.txt -Append
+}
+
+Write-Output "Đã gom toàn bộ code Java vào all-java-code.txt"

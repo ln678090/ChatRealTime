@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class AsmApplication {
-    // hihi
+
     static void main(String[] args) {
         SpringApplication.run(AsmApplication.class, args);
     }

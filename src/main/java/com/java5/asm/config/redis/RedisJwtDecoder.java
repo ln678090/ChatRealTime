@@ -1,4 +1,4 @@
-package com.java5.asm.config;
+package com.java5.asm.config.redis;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;

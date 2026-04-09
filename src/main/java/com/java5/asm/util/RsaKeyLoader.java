@@ -1,4 +1,4 @@
-package com.java5.asm.config;
+package com.java5.asm.util;
 
 import org.springframework.core.io.Resource;
 import org.springframework.util.StreamUtils;

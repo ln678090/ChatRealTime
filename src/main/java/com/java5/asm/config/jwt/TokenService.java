@@ -1,5 +1,8 @@
-package com.java5.asm.config;
+package com.java5.asm.config.jwt;
 
+import com.java5.asm.dto.AccessTokenResult;
+import com.java5.asm.config.key.JwtProperties;
+import com.java5.asm.config.custom.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,6 +1,14 @@
 package com.java5.asm.service.impl;
 
-import com.java5.asm.config.*;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.java5.asm.config.custom.CustomUserDetails;
+import com.java5.asm.config.jwt.TokenService;
+import com.java5.asm.config.jwt.TokenStore;
+import com.java5.asm.config.key.JwtProperties;
+import com.java5.asm.config.redis.RedisConfig;
 import com.java5.asm.dto.req.LoginRequest;
 import com.java5.asm.dto.req.RegisterReq;
 import com.java5.asm.dto.resp.ApiResp;
@@ -16,11 +24,13 @@ import com.nimbusds.jwt.SignedJWT;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,6 +42,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -51,6 +62,76 @@ class AuthenticationServiceImpl implements AuthenticationService {
     private final RedisTemplate<String, String> redisTemplate;
     private final TokenStore tokenStore;
 
+    @Value("${app.google.client-id}")
+    private String googleClientId;
+
+    @Transactional
+    @Override
+    public ResponseEntity<ApiResp<Object>> loginWithGoogle(String idTokenString) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                throw new RuntimeException("Token Google không hợp lệ hoặc đã hết hạn.");
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String pictureUrl = (String) payload.get("picture");
+
+            Optional<User> userOptional = userRepository.findByEmailWithRoles(email);
+            User user;
+
+            if (userOptional.isPresent()) {
+                user = userOptional.get();
+
+                // KIỂM TRA TÀI KHOẢN ĐÃ BỊ KHÓA HAY CHƯA
+                // Lưu ý: Đổi getEnabled() thành hàm kiểm tra cờ enable thực tế trong Entity của bạn (ví dụ getIsActive())
+                if (user.getEnabled() != null && !user.getEnabled()) {
+                    throw new DisabledException("Tài khoản của bạn đã bị vô hiệu hóa.");
+                }
+            } else {
+                user = new User();
+                user.setEmail(email);
+
+                // Trường username có thể yêu cầu unique trong DB, lấy phần prefix email hoặc tự sinh UUID
+                String prefix = email.contains("@") ? email.split("@")[0] : UUID.randomUUID().toString().substring(0, 8);
+                // Đảm bảo username chưa tồn tại
+                if (userRepository.findByUsername(prefix).isPresent()) {
+                    prefix = prefix + "_" + UUID.randomUUID().toString().substring(0, 4);
+                }
+                user.setUsername(prefix);
+
+                user.setFullName(name);
+                user.setAvatar(pictureUrl);
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+
+                // Gán Role mặc định
+                user.setRoles(Collections.singleton(roleRepository.findByRoleName("ROLE_USER").orElseThrow(
+                        () -> new RuntimeException("Role not found")
+                )));
+
+                // Mặc định User mới tạo qua Google Login sẽ được bật
+                user.setEnabled(true);
+
+                user = userRepository.save(user);
+            }
+
+            // Gọi hàm dùng chung để sinh token, lưu Redis và set Cookie Refresh Token
+            // Mặc định cho phép rememberMe = true với Google Login để phiên lâu hơn
+            return issueTokensAndSetCookie(user, true);
+
+        } catch (DisabledException e) {
+            throw e; // Ném thẳng ra ngoài để Global Exception/Controller đón và trả về 403
+        } catch (Exception e) {
+            log.error("Google Auth error: {}", e.getMessage(), e);
+            throw new RuntimeException("Xác thực Google thất bại", e);
+        }
+    }
 
     @Transactional
     public ResponseEntity<ApiResp<Object>> login(LoginRequest request) {
@@ -59,7 +140,15 @@ class AuthenticationServiceImpl implements AuthenticationService {
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
 
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
+        if (isAdmin) {
+            log.info("SECURITY AUDIT: Một Admin vừa đăng nhập thành công. Email: {}", request.email());
+
+        } else {
+            log.info("User bình thường đăng nhập: {}", request.email());
+        }
         String email = ((CustomUserDetails) authentication.getPrincipal()).getUsername();
 
         var user = userRepository.findByEmailWithRoles(email)

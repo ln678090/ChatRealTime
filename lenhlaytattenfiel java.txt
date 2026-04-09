@@ -1,0 +1,31 @@
+$base = "src\main\java"
+
+function GetPackageName($path) {
+    return $path.Replace($base + "\", "").Replace("\", ".")
+}
+
+function PrintTree($path, $prefix="") {
+    $dirs = Get-ChildItem $path -Directory | Sort-Object Name
+    $files = Get-ChildItem $path -File -Filter *.java | Sort-Object Name
+
+    foreach ($dir in $dirs) {
+        Write-Output "$prefix├── $($dir.Name)"
+        PrintTree $dir.FullName "$prefix│   "
+    }
+
+    foreach ($file in $files) {
+        Write-Output "$prefix├── $($file.Name)"
+    }
+}
+
+Remove-Item structure.txt -ErrorAction SilentlyContinue
+
+$roots = Get-ChildItem $base -Directory
+foreach ($rootDir in $roots) {
+    $packageName = GetPackageName $rootDir.FullName
+    $packageName | Out-File structure.txt -Append
+    PrintTree $rootDir.FullName | Out-File structure.txt -Append
+    "" | Out-File structure.txt -Append
+}
+
+Write-Output "Done!"

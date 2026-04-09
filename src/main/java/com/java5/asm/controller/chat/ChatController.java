@@ -28,7 +28,7 @@ public class ChatController {
     private final ChatService chatService;
     private final UserService userService;
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/conversations")
     public ResponseEntity<ApiResp<List<ConversationResp>>> getConversations() {
 
@@ -48,7 +48,7 @@ public class ChatController {
      *
      * GET /api/conversations/paged?page=0&size=20
      */
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/conversations/paged")
     public ResponseEntity<ApiResp<PagedConversationResp>> getConversationsPaged(
             @RequestParam(defaultValue = "0") int page,
@@ -70,7 +70,7 @@ public class ChatController {
      *
      * GET /api/messages/{conversationId}/paged?page=0&size=50
      */
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/messages/{conversationId}/paged")
     public ResponseEntity<ApiResp<PagedMessageResp>> getMessagesPaged(
             @PathVariable Long conversationId,
@@ -91,7 +91,7 @@ public class ChatController {
                 .build());
     }
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/messages/{conversationId}")
     public ResponseEntity<ApiResp<Object>> getMessage(
             @PathVariable Long conversationId
@@ -109,7 +109,7 @@ public class ChatController {
     }
 
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping("/messages")
     public ResponseEntity<ApiResp<MessageOnConversationResp>> sendMessage(
             @Valid @RequestBody SendMessageReq req
@@ -127,7 +127,7 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping("/conversations/{id}/accept")
     public ResponseEntity<ApiResp<Void>> acceptRequest(@PathVariable Long id) {
 
@@ -143,7 +143,7 @@ public class ChatController {
         );
     }
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping("/conversations/start")
     public ResponseEntity<ApiResp<ConversationResp>> startChat(@RequestBody StartChatReq req) {
         // req chứa receiverId (UUID)
@@ -164,12 +164,10 @@ public class ChatController {
         );
     }
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/users/search")
     public ResponseEntity<ApiResp<List<UserFindUserResp>>> searchUsers(@RequestParam String query) {
-        // Logic tìm user theo username hoặc email (LIKE %query%)
-        // Trả về danh sách user (id, fullName, avatar)
-        // Lưu ý: Đừng trả về chính mình
+
         List<UserFindUserResp> users = userService.searchUsers(query);
 
         return ResponseEntity.ok(
@@ -182,7 +180,7 @@ public class ChatController {
         );
     }
 
-    @PreAuthorize("hasRole('USER')")
+    // @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @DeleteMapping("/conversations/{id}")
     public ResponseEntity<ApiResp> deleteConversations(
             @PathVariable Long id

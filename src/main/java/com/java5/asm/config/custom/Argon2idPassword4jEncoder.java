@@ -1,4 +1,4 @@
-package com.java5.asm.config;
+package com.java5.asm.config.custom;
 
 import com.java5.asm.util.PasswordUtilArgon2id;
 import org.springframework.security.crypto.password.PasswordEncoder;

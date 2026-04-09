@@ -5,8 +5,12 @@ import com.java5.asm.dto.req.RegisterReq;
 import com.java5.asm.dto.resp.ApiResp;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface AuthenticationService {
+    @Transactional
+    ResponseEntity<ApiResp<Object>> loginWithGoogle(String idTokenString);
+
     ResponseEntity<ApiResp<Object>> login(@Valid LoginRequest request);
 
     ResponseEntity<ApiResp<Object>> refreshToken(String refreshToken);

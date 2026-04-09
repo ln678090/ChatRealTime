@@ -1,6 +1,6 @@
 package com.java5.asm.controller.chat;
 
-import com.java5.asm.config.BinaryWebSocketHandler;
+import com.java5.asm.config.binarymessage.BinaryWebSocketHandler;
 import com.java5.asm.dto.enumclass.BinaryMessageType;
 import com.java5.asm.dto.req.FriendAcceptReq;
 import com.java5.asm.dto.req.FriendTargetReq;
@@ -32,7 +32,7 @@ public class FriendController {
     private final FriendshipService friendshipService;
     private final BinaryWebSocketHandler webSocketHandler;
 
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     @PostMapping("/add")
     public ResponseEntity<ApiResp<Void>> request(@Valid @RequestBody FriendTargetReq body) throws IOException {
         UUID actorId = SecurityUtil.getCurrentUserId();
@@ -46,7 +46,7 @@ public class FriendController {
         return ok("Gửi lời mời kết bạn thành công.");
     }
 
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     @PostMapping("/cancel")
     public ResponseEntity<ApiResp<Void>> cancel(@Valid @RequestBody FriendTargetReq body) throws IOException {
         UUID actorId = SecurityUtil.getCurrentUserId();
@@ -58,7 +58,7 @@ public class FriendController {
         return ok("Hủy lời mời kết bạn thành công.");
     }
 
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     @PostMapping("/accept")
     public ResponseEntity<ApiResp<Void>> accept(@Valid @RequestBody FriendAcceptReq body) throws IOException {
         UUID actorId = SecurityUtil.getCurrentUserId();
@@ -70,7 +70,7 @@ public class FriendController {
         return ok("Chấp nhận kết bạn thành công.");
     }
 
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     @PostMapping("/unfriend")
     public ResponseEntity<ApiResp<Void>> unfriend(@Valid @RequestBody FriendTargetReq body) throws IOException {
         UUID actorId = SecurityUtil.getCurrentUserId();

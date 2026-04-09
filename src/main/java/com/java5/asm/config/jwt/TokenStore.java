@@ -1,5 +1,7 @@
-package com.java5.asm.config;
+package com.java5.asm.config.jwt;
 
+import com.java5.asm.config.key.JwtProperties;
+import com.java5.asm.config.redis.RedisConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;

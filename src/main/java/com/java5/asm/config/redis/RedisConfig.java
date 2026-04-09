@@ -1,4 +1,4 @@
-package com.java5.asm.config;
+package com.java5.asm.config.redis;
 
 import org.springframework.context.annotation.Configuration;
 

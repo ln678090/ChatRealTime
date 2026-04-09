@@ -60,6 +60,7 @@ class ChatServiceImpl
             String friendshipStatus = "NONE";
             boolean canMessage = true;
             if (Boolean.TRUE.equals(co.getIsGroup())) {
+
                 // GROUP: giữ nguyên chatName của conversation
                 displayName = co.getChatName();
                 displayAvatar = "https://maunailxinh.com/wp-content/uploads/2025/06/cropped-avatar-an-danh-38.jpg";

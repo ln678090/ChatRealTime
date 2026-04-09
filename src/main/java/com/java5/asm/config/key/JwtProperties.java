@@ -1,4 +1,4 @@
-package com.java5.asm.config;
+package com.java5.asm.config.key;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
