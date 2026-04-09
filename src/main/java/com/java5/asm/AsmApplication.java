@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @ConfigurationPropertiesScan
 public class AsmApplication {
 
-    static void main(String[] args) {
+   public static void main(String[] args) {
         SpringApplication.run(AsmApplication.class, args);
     }
 
