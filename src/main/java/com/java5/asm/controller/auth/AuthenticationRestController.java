@@ -48,6 +48,10 @@ class AuthenticationRestController {
         return authenticationService.logout(refreshToken, authHeader);
     }
 
+    @GetMapping("/test")
+    public ResponseEntity<String> getUserInfo(){
+        return ResponseEntity.ok("Hi");
+    }
     @PostMapping("/register")
     public ResponseEntity<ApiResp<Object>> register(
             @Valid @RequestBody RegisterReq req
