@@ -63,7 +63,7 @@ WebSecurityConfig {
                     auth.requestMatchers("/api/auth/**", "/ws/**").permitAll();
                     auth.requestMatchers("/api/ai/test").permitAll();
                     auth.requestMatchers("/ws-binary-chat").permitAll();
-                    auth.requestMatchers("/api/internal/users/sync").permitAll();
+//                    auth.requestMatchers("/api/internal/users/sync").permitAll();
 
 //                    auth.requestMatchers("/api/conversations/**").hasAnyRole("USER", "ADMIN");
 //                    auth.requestMatchers("/api/messages/**").hasAnyRole("USER", "ADMIN");
