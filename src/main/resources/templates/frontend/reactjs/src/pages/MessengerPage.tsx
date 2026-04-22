@@ -217,10 +217,10 @@ const MessengerPage = () => {
                 )}
             </div>
 
-            <SettingsModal
-                isOpen={showSettings}
-                onClose={() => setShowSettings(false)}
-            />
+            {/*<SettingsModal*/}
+            {/*    isOpen={showSettings}*/}
+            {/*    onClose={() => setShowSettings(false)}*/}
+            {/*/>*/}
         </div>
     );
 };
