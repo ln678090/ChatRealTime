@@ -43,7 +43,7 @@ public class BinaryWebSocketHandler extends org.springframework.web.socket.handl
     private static final UUID AI_BOT_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     private final BlacklistWordRepository blacklistWordRepository;
 
-    //  1. Khi có kết nối mới
+
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         try {
@@ -60,7 +60,7 @@ public class BinaryWebSocketHandler extends org.springframework.web.socket.handl
         }
     }
 
-    //  2. Khi ngắt kết nối
+
     @Override
     public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         Authentication auth = getAuthenticationFromSession(session);
@@ -329,7 +329,6 @@ public class BinaryWebSocketHandler extends org.springframework.web.socket.handl
             } else {
                 payload.setContentType(MessageContentType.TEXT); // Default
             }
-
             //  [9-12] File attachment (if exists)
             if (arraySize >= 13) {
                 payload.setAttachmentUrl(unpacker.tryUnpackNil() ? null : unpacker.unpackString());
@@ -341,7 +340,6 @@ public class BinaryWebSocketHandler extends org.springframework.web.socket.handl
                     payload.setAttachmentSize(unpackNumber(unpacker));
                 }
             }
-
             return payload;
         }
     }
